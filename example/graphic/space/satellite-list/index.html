@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0,minimum-scale=1.0,maximum-scale=1.0" />
+    <meta name="author" content="火星科技 http://mars3d.cn " />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="x5-fullscreen" content="true" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <!-- 标题及搜索关键字 -->
+    <meta name="keywords" content="火星科技,cesium,3D,GIS,marsgis,三维,地球,地图,开发,框架,系统,示例,资料,模型,离线,外包,合肥,安徽,中国" />
+    <meta
+      name="description"
+      content="火星科技 合肥火星 合肥火星科技 合肥火星科技有限公司 leaflet leaflet框架 leaflet开发 cesium cesium开发 cesium框架 三维 地球 模型  gis marsgis 地图离线 地图开发 地图框架 地图外包 框架 开发 外包  地图离线 二维地图 三维地图 全景漫游 地理信息系统 云GIS 三维GIS GIS平台 WebGIS"
+    />
+
+    <link rel="shortcut icon" type="image/x-icon" href="/img/favicon/favicon.ico" />
+    <title>多卫星TLE实时展示 | Mars3D | 三维地图 | 火星科技 | 合肥火星科技有限公司</title>
+
+    <!--第三方lib-->
+    <script
+      type="text/javascript"
+      src="/lib/include-lib.js"
+      libpath="/lib/"
+      include="jquery,layer,toastr,jquery.range,font-awesome,bootstrap,bootstrap-checkbox,layer,haoutil,mars3d,mars3d-space"
+    ></script>
+
+    <link href="/css/style.css" rel="stylesheet" />
+  </head>
+
+  <body class="dark">
+    <div id="mars3dContainer" class="mars3d-container"></div>
+
+    <div class="infoview">
+      <div>
+        图层状态：
+        <div class="checkbox checkbox-primary checkbox-inline">
+          <input id="enabledShowHide" class="styled" type="checkbox" checked />
+          <label for="enabledShowHide"> 显示 </label>
+        </div>
+        <div class="checkbox checkbox-primary checkbox-inline">
+          <input id="enabledPopup" class="styled" type="checkbox" checked />
+          <label for="enabledPopup"> 单击Popup </label>
+        </div>
+        <div class="checkbox checkbox-primary checkbox-inline">
+          <input id="enabledTooltip" class="styled" type="checkbox" />
+          <label for="enabledTooltip"> 移入Tooltip </label>
+        </div>
+        <div class="checkbox checkbox-primary checkbox-inline">
+          <input id="enabledRightMenu" class="styled" type="checkbox" />
+          <label for="enabledRightMenu"> 右键菜单绑定 </label>
+        </div>
+      </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="./map.js"></script>
+
+    <script type="text/javascript">
+      "use script" //开发环境建议开启严格模式
+
+      function initUI(options) {
+        setTimeout(() => {
+          if (graphicLayer) {
+            $("#enabledShowHide").attr("checked", graphicLayer.show)
+            $("#enabledPopup").attr("checked", graphicLayer.hasPopup())
+            $("#enabledTooltip").attr("checked", graphicLayer.hasTooltip())
+            $("#enabledRightMenu").attr("checked", graphicLayer.hasContextMenu())
+
+            const graphics = graphicLayer.getGraphics()
+            if (graphics.length > 0) {
+              if (!graphics[0].hasOpacity) {
+                $("#enabledOpacity").hide()
+              }
+              if (!graphics[0].hasEdit) {
+                $("#enabledEdit").hide()
+              }
+            }
+          }
+        }, 500)
+
+        // 图层状态
+        $("#enabledShowHide").change(function () {
+          let val = $(this).is(":checked")
+          graphicLayer.show = val
+        })
+
+        // 图层交互
+        $("#enabledPopup").change(function () {
+          let val = $(this).is(":checked")
+
+          if (val) {
+            bindLayerPopup() //map.js中不绑定Popup,使用graphic_layer_state.js中的bindLayerPopup2
+          } else {
+            graphicLayer.unbindPopup()
+          }
+        })
+        $("#enabledTooltip").change(function () {
+          let val = $(this).is(":checked")
+
+          if (val) {
+            graphicLayer.bindTooltip(
+              function (event) {
+                const attr = getAttrForEvent(event)
+                attr["类型"] = event.graphic?.type
+                attr["来源"] = "我是layer上绑定的Toolip"
+                attr["备注"] = "我支持鼠标移入交互"
+
+                return mars3d.Util.getTemplateHtml({ title: "矢量图层", template: "all", attr: attr })
+              },
+              { pointerEvents: true }
+            )
+          } else {
+            graphicLayer.unbindTooltip()
+          }
+        })
+        $("#enabledRightMenu").change(function () {
+          let val = $(this).is(":checked")
+
+          if (val) {
+            bindLayerContextMenu2() //map.js中不绑定ContextMenu,使用graphic_layer_state.js中的bindLayerContextMenu2
+          } else {
+            graphicLayer.unbindContextMenu(true)
+          }
+        })
+      }
+
+      function getAttrForEvent(event) {
+        if (event?.graphic?.attr) {
+          return event.graphic.attr
+        }
+        if (!event.czmObject) {
+          return {}
+        }
+
+        let attr = event.czmObject._attr || event.czmObject.properties || event.czmObject.attribute
+        if (attr && attr.type && attr.attr) {
+          attr = attr.attr // 兼容历史数据,V2内部标绘生产的geojson
+        }
+        return attr ?? {}
+      }
+
+      // 绑定右键菜单
+      function bindLayerContextMenu2() {
+        graphicLayer.bindContextMenu([
+          {
+            text: "开始编辑对象",
+            icon: "fa fa-edit",
+            show: function (e) {
+              const graphic = e.graphic
+              if (!graphic || !graphic.hasEdit) {
+                return false
+              }
+              return !graphic.isEditing
+            },
+            callback: (e) => {
+              const graphic = e.graphic
+              if (!graphic) {
+                return false
+              }
+              if (graphic) {
+                graphicLayer.startEditing(graphic)
+              }
+            }
+          },
+          {
+            text: "停止编辑对象",
+            icon: "fa fa-edit",
+            show: function (e) {
+              const graphic = e.graphic
+              if (!graphic || !graphic.hasEdit) {
+                return false
+              }
+              return graphic.isEditing
+            },
+            callback: (e) => {
+              const graphic = e.graphic
+              if (!graphic) {
+                return false
+              }
+              if (graphic) {
+                graphic.stopEditing()
+              }
+            }
+          },
+          {
+            text: "删除对象",
+            icon: "fa fa-trash-o",
+            show: (event) => {
+              const graphic = event.graphic
+              if (!graphic || graphic.isDestroy) {
+                return false
+              } else {
+                return true
+              }
+            },
+            callback: (e) => {
+              const graphic = e.graphic
+              if (!graphic) {
+                return
+              }
+              const parent = graphic.parent // 右击是编辑点时
+              graphicLayer.removeGraphic(graphic)
+              if (parent) {
+                graphicLayer.removeGraphic(parent)
+              }
+            }
+          },
+          {
+            text: "计算长度",
+            icon: "fa fa-medium",
+            show: function (e) {
+              const graphic = e.graphic
+              if (!graphic) {
+                return false
+              }
+              return (
+                graphic.type === "polyline" ||
+                graphic.type === "polylineP" ||
+                graphic.type === "curve" ||
+                graphic.type === "curveP" ||
+                graphic.type === "polylineVolume" ||
+                graphic.type === "polylineVolumeP" ||
+                graphic.type === "corridor" ||
+                graphic.type === "corridorP" ||
+                graphic.type === "wall" ||
+                graphic.type === "wallP"
+              )
+            },
+            callback: (e) => {
+              const graphic = e.graphic
+              const strDis = mars3d.MeasureUtil.formatDistance(graphic.distance)
+              haoutil.alert("该对象的长度为:" + strDis)
+            }
+          },
+          {
+            text: "计算周长",
+            icon: "fa fa-medium",
+            show: function (e) {
+              const graphic = e.graphic
+              if (!graphic) {
+                return false
+              }
+              return (
+                graphic.type === "circle" ||
+                graphic.type === "circleP" ||
+                graphic.type === "rectangle" ||
+                graphic.type === "rectangleP" ||
+                graphic.type === "polygon" ||
+                graphic.type === "polygonP"
+              )
+            },
+            callback: (e) => {
+              const graphic = e.graphic
+              const strDis = mars3d.MeasureUtil.formatDistance(graphic.distance)
+              haoutil.alert("该对象的周长为:" + strDis)
+            }
+          },
+          {
+            text: "计算面积",
+            icon: "fa fa-reorder",
+            show: function (e) {
+              const graphic = e.graphic
+              if (!graphic) {
+                return false
+              }
+              return (
+                graphic.type === "circle" ||
+                graphic.type === "circleP" ||
+                graphic.type === "rectangle" ||
+                graphic.type === "rectangleP" ||
+                graphic.type === "polygon" ||
+                graphic.type === "polygonP" ||
+                graphic.type === "scrollWall" ||
+                graphic.type === "water"
+              )
+            },
+            callback: (e) => {
+              const graphic = e.graphic
+              const strArea = mars3d.MeasureUtil.formatArea(graphic.area)
+              haoutil.alert("该对象的面积为:" + strArea)
+            }
+          }
+        ])
+      }
+    </script>
+  </body>
+</html>

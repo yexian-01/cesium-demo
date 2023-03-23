@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0,minimum-scale=1.0,maximum-scale=1.0" />
+    <meta name="author" content="火星科技 http://mars3d.cn " />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="x5-fullscreen" content="true" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <!-- 标题及搜索关键字 -->
+    <meta name="keywords" content="火星科技,cesium,3D,GIS,marsgis,三维,地球,地图,开发,框架,系统,示例,资料,模型,离线,外包,合肥,安徽,中国" />
+    <meta
+      name="description"
+      content="火星科技 合肥火星 合肥火星科技 合肥火星科技有限公司 leaflet leaflet框架 leaflet开发 cesium cesium开发 cesium框架 三维 地球 模型  gis marsgis 地图离线 地图开发 地图框架 地图外包 框架 开发 外包  地图离线 二维地图 三维地图 全景漫游 地理信息系统 云GIS 三维GIS GIS平台 WebGIS"
+    />
+
+    <link rel="shortcut icon" type="image/x-icon" href="/img/favicon/favicon.ico" />
+    <title>铁路仿真 | Mars3D | 三维地图 | 火星科技 | 合肥火星科技有限公司</title>
+
+    <!--第三方lib-->
+    <script
+      type="text/javascript"
+      src="/lib/include-lib.js"
+      libpath="/lib/"
+      include="jquery,layer,toastr,font-awesome,echarts,bootstrap,layer,haoutil,mars3d"
+    ></script>
+
+    <link href="/css/style.css" rel="stylesheet" />
+  </head>
+
+  <body class="dark">
+    <div id="mars3dContainer" class="mars3d-container"></div>
+
+    <div class="infoview">
+      <div id="section" style="width: 400px; height: 250px"></div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="./map.js"></script>
+    <script type="text/javascript">
+      "use script" //开发环境建议开启严格模式
+
+      eventTarget.on("dataLoaded", function (event) {
+        drawHeightEcharts(event)
+      })
+
+      eventTarget.on("dataUpdated", function (event) {
+        updateEchartsD(event)
+      })
+
+      //==============更新echarts================
+
+      //图表
+      let myChart
+
+      //生成echarts图表
+      function drawHeightEcharts(event) {
+        const heightArray = event.heightArray
+        const heightTDArray = event.heightTDArray
+        const distanceArray = event.distanceArray
+        if (myChart == null) {
+          myChart = echarts.init(document.getElementById("section"), "dark")
+        }
+
+        let option = {
+          title: {
+            text: "断面图"
+          },
+          tooltip: {
+            trigger: "axis",
+            axisPointer: {
+              type: "cross"
+            }
+          },
+          toolbox: {
+            show: false,
+            feature: {
+              saveAsImage: {}
+            }
+          },
+          legend: {
+            data: ["地形高程", "设计高程"]
+          },
+          xAxis: {
+            type: "category",
+            boundaryGap: false,
+            data: distanceArray
+          },
+          yAxis: {
+            type: "value",
+            axisLabel: {
+              formatter: "{value} 米"
+            },
+            axisPointer: {
+              snap: true
+            }
+          },
+          dataZoom: [
+            {
+              type: "inside"
+            },
+            {
+              start: 0,
+              end: 10,
+              handleIcon:
+                "M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z",
+              handleSize: "80%",
+              handleStyle: {
+                color: "#fff",
+                shadowBlur: 3,
+                shadowColor: "rgba(0, 0, 0, 0.6)",
+                shadowOffsetX: 2,
+                shadowOffsetY: 2
+              }
+            }
+          ],
+          // visualMap: {
+          //     show: false,
+          //     dimension: 0,
+          //     pieces: [{ "gt": 0, "lte": 635 }]
+          // },
+          series: [
+            {
+              name: "地形高程",
+              type: "line",
+              smooth: true,
+              itemStyle: {
+                normal: {
+                  color: "rgb(255, 255, 0)"
+                }
+              },
+              data: heightTDArray
+            },
+            {
+              name: "设计高程",
+              type: "line",
+              smooth: true,
+              itemStyle: {
+                normal: {
+                  color: "rgb(255, 70, 131)"
+                }
+              },
+              data: heightArray,
+              markPoint: undefined
+            }
+          ]
+        }
+        myChart.setOption(option, true)
+
+        // myChart.on('click', function (param) {
+        //     map.trackedEntity = undefined;
+        //     map.camera.flyTo({
+        //         destination: Cesium.Cartesian3.fromDegrees(points[param.dataIndex][0], points[param.dataIndex][1], height + 30)
+        //     });
+        // });
+      }
+
+      function updateEchartsD(event) {
+        const loc = event.loc
+        const height = event.height
+        if (!myChart) {
+          return
+        }
+
+        let markPoint = {
+          data: [
+            {
+              name: "车",
+              value: "车",
+              xAxis: loc + 5,
+              yAxis: height
+            }
+          ]
+        }
+
+        // 填入数据,根据名字对应到相应的系列
+        myChart.setOption({
+          series: [
+            {
+              name: "设计高程",
+              markPoint: markPoint
+            }
+          ]
+        })
+      }
+    </script>
+  </body>
+</html>

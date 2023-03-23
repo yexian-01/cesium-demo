@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0,minimum-scale=1.0,maximum-scale=1.0" />
+    <meta name="author" content="火星科技 http://mars3d.cn " />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="x5-fullscreen" content="true" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <!-- 标题及搜索关键字 -->
+    <meta name="keywords" content="火星科技,cesium,3D,GIS,marsgis,三维,地球,地图,开发,框架,系统,示例,资料,模型,离线,外包,合肥,安徽,中国" />
+    <meta
+      name="description"
+      content="火星科技 合肥火星 合肥火星科技 合肥火星科技有限公司 leaflet leaflet框架 leaflet开发 cesium cesium开发 cesium框架 三维 地球 模型  gis marsgis 地图离线 地图开发 地图框架 地图外包 框架 开发 外包  地图离线 二维地图 三维地图 全景漫游 地理信息系统 云GIS 三维GIS GIS平台 WebGIS"
+    />
+
+    <link rel="shortcut icon" type="image/x-icon" href="/img/favicon/favicon.ico" />
+    <title>粒子效果 | 三维地图 | Mars3D | 三维地图 | 火星科技 | 合肥火星科技有限公司</title>
+
+    <!--第三方lib-->
+    <script
+      type="text/javascript"
+      src="/lib/include-lib.js"
+      libpath="/lib/"
+      include="jquery,layer,toastr,font-awesome,bootstrap,bootstrap-checkbox,bootstrap-slider,layer,haoutil,mars3d"
+    ></script>
+
+    <link href="/css/style.css" rel="stylesheet" />
+  </head>
+
+  <body class="dark">
+    <div id="mars3dContainer" class="mars3d-container"></div>
+
+    <!-- 面板 -->
+    <div class="infoview">
+      <div>
+        图层状态：
+        <div class="checkbox checkbox-primary checkbox-inline">
+          <input id="enabledShowHide" class="styled" type="checkbox" checked />
+          <label for="enabledShowHide"> 显示 </label>
+        </div>
+        <div class="checkbox checkbox-primary checkbox-inline">
+          <input id="onClickFlyTo" title="视角定位" type="button" class="btn btn-primary" value="定位" />
+        </div>
+      </div>
+
+      <div>
+        数据维护：
+        <input onclick="startDrawGraphic()" type="button" class="btn btn-primary" value="图上标绘" title="在图上绘制新增一个矢量数据" />
+      </div>
+
+      <div>
+        数据测试：
+        <input id="count" type="number" value="100" min="1" max="1000000" step="1" class="form-control" style="width: 152px" />条
+
+        <input id="addRandomGraphicByCount" type="button" class="btn btn-primary" value="生成" />
+        <input id="onClickClear" type="button" class="btn btn-danger" value="清除" />
+      </div>
+
+      <div>
+        数据导出：
+        <input id="btnImpFile" type="button" class="btn btn-primary" value="打开" title="打开GeoJSON" />
+        <input id="input_draw_file" type="file" accept=".json,.geojson" style="display: none" />
+
+        <input onclick="expGeoJSONFile()" type="button" class="btn btn-primary" value="导出GeoJSON" title="保存GeoJSON" />
+        <input onclick="expJSONFile()" type="button" class="btn btn-primary" value="导出构造JSON" title="导出构造参数Json" />
+      </div>
+    </div>
+
+    <!-- 面板 -->
+    <div id="toolbar" class="infoview infoview-left">
+      <table class="mars-table">
+        <tbody>
+          <tr title="粒子效果的所在位置">
+            <td>所在位置</td>
+            <td>
+              <input id="btnSelectPosition" type="button" onclick="btnSelectPosition()" class="btn btn-info" value="图上选点" />
+            </td>
+            <td></td>
+          </tr>
+
+          <tr title="particleSize 粒子图片的Size大小">
+            <td>粒子图片大小</td>
+            <td>
+              <input type="range" id="particleSize" min="2" max="60.0" step="1" data-bind="value: particleSize, valueUpdate: 'input'" />
+            </td>
+            <td>
+              <input type="text" size="5" data-bind="value: particleSize" />
+              （px）
+            </td>
+          </tr>
+          <tr title="startScale 粒子在出生时的比例（单位：相对于imageSize大小的倍数）">
+            <td>粒子开始比例</td>
+            <td>
+              <input type="range" id="startScale" min="0.0" max="10.0" step="1" data-bind="value: startScale, valueUpdate: 'input'" />
+            </td>
+            <td>
+              <input type="text" size="5" data-bind="value: startScale" />
+            </td>
+          </tr>
+
+          <tr title="endScale 粒子在死亡时的比例（单位：相对于imageSize大小的倍数）">
+            <td>粒子结束比例</td>
+            <td>
+              <input type="range" id="endScale" min="0.0" max="10.0" step="1" data-bind="value: endScale, valueUpdate: 'input'" />
+            </td>
+            <td>
+              <input type="text" size="5" data-bind="value: endScale" />
+            </td>
+          </tr>
+
+          <tr title="emissionRate 粒子发射器的发射速率">
+            <td>粒子发射数量</td>
+            <td>
+              <input type="range" id="emissionRate" min="0.0" max="500.0" step="1" data-bind="value: emissionRate, valueUpdate: 'input'" />
+            </td>
+            <td>
+              <input type="text" size="5" data-bind="value: emissionRate" />
+              （次/秒）
+            </td>
+          </tr>
+
+          <tr title="minimumParticleLife 粒子可能存在的最短寿命时间，实际寿命将随机生成">
+            <td>最小寿命时长</td>
+            <td>
+              <input
+                type="range"
+                id="minimumParticleLife"
+                min="0.1"
+                max="30.0"
+                step="1"
+                data-bind="value: minimumParticleLife, valueUpdate: 'input'"
+              />
+            </td>
+            <td>
+              <input type="text" size="5" data-bind="value: minimumParticleLife" />
+              （秒）
+            </td>
+          </tr>
+
+          <tr title="maximumParticleLife 粒子可能存在的最长寿命时间，实际寿命将随机生成">
+            <td>最大寿命时长</td>
+            <td>
+              <input
+                type="range"
+                id="maximumParticleLife"
+                min="0.1"
+                max="30.0"
+                step="1"
+                data-bind="value: maximumParticleLife, valueUpdate: 'input'"
+              />
+            </td>
+            <td>
+              <input type="text" size="5" data-bind="value: maximumParticleLife" />
+              （秒）
+            </td>
+          </tr>
+
+          <tr title="gravity 重力因子，会修改速度矢量以改变方向或速度（基于物理的效果）">
+            <td>重力因子</td>
+            <td>
+              <input type="range" id="gravity" min="-20.0" max="20.0" step="1" data-bind="value: gravity, valueUpdate: 'input'" />
+            </td>
+            <td>
+              <input type="text" size="5" data-bind="value: gravity" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="./map.js"></script>
+    <script src="/js/graphic_layer_state.js"></script>
+    <script type="text/javascript">
+      "use script" //开发环境建议开启严格模式
+
+      let viewModel = {
+        particleSize: 20.0,
+        startScale: 1.0,
+        endScale: 3.0,
+        emissionRate: 200,
+        minimumParticleLife: 1.2,
+        maximumParticleLife: 3.2,
+        gravity: -11.0
+      }
+
+      function initUI(options) {
+        setTimeout(() => {
+          if (graphicLayer) {
+            $("#enabledShowHide").attr("checked", graphicLayer.show)
+            $("#enabledPopup").attr("checked", graphicLayer.hasPopup())
+            $("#enabledTooltip").attr("checked", graphicLayer.hasTooltip())
+            $("#enabledRightMenu").attr("checked", graphicLayer.hasContextMenu())
+
+            const graphics = graphicLayer.getGraphics()
+            if (graphics.length > 0) {
+              if (!graphics[0].hasOpacity) {
+                $("#enabledOpacity").hide()
+              }
+            }
+            getGraphic(graphics[0].id)
+
+            graphicLayer.on(mars3d.EventType.addGraphic, function (event) {
+              setTimeout(() => {
+                getGraphic(event.graphic.id)
+              }, 50)
+            })
+          }
+        }, 500)
+
+        // 图层状态
+        $("#enabledShowHide").change(function () {
+          let val = $(this).is(":checked")
+          graphicLayer.show = val
+        })
+        $("#onClickFlyTo").click(function () {
+          graphicLayer.flyTo()
+        })
+
+        // 图层交互
+        $("#enabledPopup").change(function () {
+          let val = $(this).is(":checked")
+
+          if (val) {
+            bindLayerPopup() //map.js中不绑定Popup,可以使用graphic_layer_state.js中的bindLayerPopup2
+          } else {
+            graphicLayer.unbindPopup()
+          }
+        })
+        $("#enabledTooltip").change(function () {
+          let val = $(this).is(":checked")
+
+          if (val) {
+            graphicLayer.bindTooltip(
+              function (event) {
+                const attr = getAttrForEvent(event)
+                attr["类型"] = event.graphic?.type
+                attr["来源"] = "我是layer上绑定的Toolip"
+                attr["备注"] = "我支持鼠标移入交互"
+
+                return mars3d.Util.getTemplateHtml({ title: "矢量图层", template: "all", attr: attr })
+              },
+              { pointerEvents: true }
+            )
+          } else {
+            graphicLayer.unbindTooltip()
+          }
+        })
+        $("#enabledRightMenu").change(function () {
+          let val = $(this).is(":checked")
+
+          if (val) {
+            bindLayerContextMenu() //map.js中不绑定ContextMenu,可以使用graphic_layer_state.js中的bindLayerContextMenu2
+          } else {
+            graphicLayer.unbindContextMenu(true)
+          }
+        })
+
+        // 数据测试 - 生成和清除
+        $("#addRandomGraphicByCount").click(function () {
+          addRandomGraphicByCount($("#count").val())
+          graphicLayer.flyTo({ duration: 0, heading: 0, pitch: -40, scale: 1.2 })
+
+          const graphics = graphicLayer.getGraphics()
+          particleGraphic = graphics[graphics.length - 1]
+        })
+        $("#onClickClear").click(function () {
+          graphicLayer.clear()
+          // particleGraphic = null
+        })
+
+        $("#btnImpFile").click(function () {
+          $("#input_draw_file").click()
+        })
+
+        $("#input_draw_file").change(function (e) {
+          let file = this.files[0]
+          onClickImpFile(file)
+        })
+
+        //绑定UI处理   参数调试
+        changeParamView()
+      }
+
+      //UI绑定数据 处理
+      function changeParamView() {
+        Cesium.knockout.track(viewModel)
+        let toolbar = document.getElementById("toolbar")
+        Cesium.knockout.applyBindings(viewModel, toolbar)
+
+        //绑定事件
+        Cesium.knockout.getObservable(viewModel, "emissionRate").subscribe(function (newValue) {
+          viewModel.emissionRate = newValue
+          setStylyToGraphic({ emissionRate: newValue })
+        })
+
+        Cesium.knockout.getObservable(viewModel, "minimumParticleLife").subscribe(function (newValue) {
+          viewModel.minimumParticleLife = newValue
+          setStylyToGraphic({ minimumParticleLife: newValue })
+        })
+
+        Cesium.knockout.getObservable(viewModel, "maximumParticleLife").subscribe(function (newValue) {
+          viewModel.maximumParticleLife = newValue
+          setStylyToGraphic({ maximumParticleLife: newValue })
+        })
+
+        Cesium.knockout.getObservable(viewModel, "minimumParticleLife").subscribe(function (newValue) {
+          viewModel.minimumParticleLife = newValue
+          setStylyToGraphic({ minimumParticleLife: newValue })
+        })
+
+        Cesium.knockout.getObservable(viewModel, "maximumParticleLife").subscribe(function (newValue) {
+          viewModel.maximumParticleLife = newValue
+          setStylyToGraphic({ maximumParticleLife: newValue })
+        })
+
+        Cesium.knockout.getObservable(viewModel, "startScale").subscribe(function (newValue) {
+          viewModel.startScale = newValue
+          setStylyToGraphic({ startScale: newValue })
+        })
+
+        Cesium.knockout.getObservable(viewModel, "endScale").subscribe(function (newValue) {
+          viewModel.endScale = newValue
+          setStylyToGraphic({ endScale: newValue })
+        })
+
+        Cesium.knockout.getObservable(viewModel, "particleSize").subscribe(function (newValue) {
+          viewModel.particleSize = newValue
+          setStylyToGraphic({ particleSize: newValue })
+        })
+
+        Cesium.knockout.getObservable(viewModel, "gravity").subscribe(function (newValue) {
+          viewModel.gravity = newValue
+          setStylyToGraphic({ gravity: newValue })
+        })
+      }
+    </script>
+  </body>
+</html>

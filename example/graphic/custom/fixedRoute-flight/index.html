@@ -1,0 +1,437 @@
+<!-- 2017-12-7 14:56:03 | 修改 木遥（微信:  http://marsgis.cn/weixin.html ） -->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport"
+    content="width=device-width,initial-scale=1,user-scalable=0,minimum-scale=1.0,maximum-scale=1.0" />
+  <meta name="apple-touch-fullscreen" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="x5-fullscreen" content="true" />
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+  <!-- 标题及搜索关键字 -->
+  <meta name="keywords" content="火星科技,cesium,3D,GIS,marsgis,三维,地球,地图,开发,框架,系统,示例,资料,模型,离线,外包,合肥,安徽,中国" />
+  <meta name="description"
+    content="火星科技 合肥火星 合肥火星科技 合肥火星科技有限公司 leaflet leaflet框架 leaflet开发 cesium cesium开发 cesium框架 三维 地球 模型  gis marsgis 地图离线 地图开发 地图框架 地图外包 框架 开发 外包  地图离线 二维地图 三维地图 全景漫游 地理信息系统 云GIS 三维GIS GIS平台 WebGIS" />
+
+  <link rel="shortcut icon" type="image/x-icon" href="/img/favicon/favicon.ico" />
+  <title>飞行路线 | Mars3D | 三维地图 | 火星科技 | 合肥火星科技有限公司</title>
+
+  <script type="text/javascript" src="/lib/include-lib.js" libpath="/lib/"
+    include="jquery,layer,toastr,font-awesome,bootstrap,bootstrap-checkbox,bootstrap-slider,layer,haoutil,mars3d"></script>
+
+  <link href="/lib/jquery/select/jqSelect.css" rel="stylesheet" />
+  <script src="/lib/jquery/select/jqSelect.js"></script>
+
+  <link href="/css/style.css" rel="stylesheet" />
+  <style>
+    .mp_table {
+      width: 100%;
+      border: #cde1de 1px solid;
+      font-size: 12px;
+      border-collapse: collapse;
+      border-spacing: 0;
+    }
+
+    .mp_table tr td {
+      padding: 5px 5px;
+      text-align: left;
+      border: #cde1de 1px solid;
+    }
+
+    .mp_table tr td:first-child {
+      border-left: none;
+    }
+
+    .nametd {
+      width: 40%;
+    }
+
+    .mp_input {
+      height: 28px;
+      line-height: 22px;
+      padding: 3px 5px;
+      box-sizing: border-box;
+      font-size: 12px;
+      border: 1px solid #e6e6e6;
+      background-color: #fff;
+      border-radius: 3px;
+      display: block;
+      width: 100%;
+      outline: 0;
+      box-sizing: border-box;
+    }
+
+    .mp_input:hover {
+      border-color: #c9c9c9 !important;
+    }
+
+    .mp_input:focus {
+      border-color: #3374e0 !important;
+    }
+
+    .mp_head2 {
+      width: 100%;
+      height: 45px;
+      line-height: 45px;
+      text-align: center;
+    }
+
+    .dark .progress {
+      margin: 0;
+      background-color: #0b2931;
+    }
+
+    .slider.slider-horizontal {
+      /* display: none; */
+      width: 83px;
+      height: 20px;
+      margin-left: 10px;
+    }
+
+    #model_heading_new,
+    #model_roll_new,
+    #model_pitch_new {
+      width: 93px;
+      height: 8px;
+    }
+
+    #model_pitch_wrap,
+    #model_roll_wrap,
+    #model_heading_wrap {
+      float: right;
+    }
+  </style>
+</head>
+
+<body class="dark">
+  <div id="mars3dContainer" class="mars3d-container"></div>
+
+  <!-- 控制 面板 -->
+  <div class="infoview">
+    <input id="btnStart" type="button" class="btn btn-primary" value="开始" />
+    <input id="btnPause" type="button" class="btn btn-primary" value="暂停" />
+    <input id="btnStop" type="button" class="btn btn-primary" value="停止" />
+
+    <table class="mp_table">
+      <tr>
+        <td class="nametd">漫游视角</td>
+        <td>
+          <select id="cameraType" class="mp_select" data-value="gs">
+            <option value="">自由视角</option>
+            <option value="gs">跟随视角</option>
+            <option value="dy">锁定第一视角</option>
+            <option value="sd">锁定上帝视角</option>
+          </select>
+        </td>
+      </tr>
+      <tr id="tr_followedX" title="距离漫游对象的水平距离，单位：米">
+        <td class="nametd">视角距离</td>
+        <td>
+          <input id="followedX" type="number" min="0" max="99999" value="1" class="mp_input" />
+        </td>
+      </tr>
+      <tr id="tr_followedZ" title="距离漫游对象的高度，单位：米">
+        <td class="nametd">视角高度</td>
+        <td>
+          <input id="followedZ" type="number" min="0" max="99999" value="0" class="mp_input" />
+        </td>
+      </tr>
+
+      <tr id="tr_offsetZ" title="偏离漫游对象的高度，单位：米">
+        <td class="nametd">高度偏移值</td>
+        <td>
+          <input id="offsetZ" type="number" min="-9999" max="9999" value="0" step="0.1" class="mp_input" />
+        </td>
+      </tr>
+      <tr id="tr_offsetY" title="偏离漫游对象的横向值，单位：米">
+        <td class="nametd">横向偏移值</td>
+        <td>
+          <input id="offsetY" type="number" min="-9999" max="9999" value="0" step="0.1" class="mp_input" />
+        </td>
+      </tr>
+      <tr id="tr_offsetX" title="偏离漫游对象的前后值，单位：米">
+        <td class="nametd">前后偏移值</td>
+        <td>
+          <input id="offsetX" type="number" min="-9999" max="9999" value="0" step="0.1" class="mp_input" />
+        </td>
+      </tr>
+
+      <!-- <tr>
+          <td class="nametd">模型角度</td>
+          <td style="min-width: 130px">
+            <div class="radio radio-info radio-inline">
+              <input type="radio" id="jiaodu_1" value="1" name="jiaodu" checked />
+              <label for="jiaodu_1">自动</label>
+            </div>
+            <div class="radio radio-info radio-inline">
+              <input type="radio" id="jiaodu_2" value="2" name="jiaodu" />
+              <label for="jiaodu_2">手动</label>
+            </div>
+          </td>
+        </tr> -->
+      <tr class="jiaodu_2_angele">
+        <td class="nametd">heading值</td>
+        <td>
+          <div class="checkbox checkbox-primary checkbox-inline">
+            <input id="headingChecked" class="styled" type="checkbox" onclick="clickHeading()" />
+            <label id="headingLabel" for="headingChecked"> 根据路线自动计算 </label>
+          </div>
+          <div id="model_heading_wrap">
+            <div id="model_heading_new">
+              <input type="text" min="0" max="360" step="0.01" value="10" title="方向">
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="jiaodu_2_angele">
+        <td class="nametd">pitch值</td>
+        <td>
+          <div class="checkbox checkbox-primary checkbox-inline">
+            <input id="pitchChecked" class="styled" type="checkbox" defaultChecked="false" onclick="clickPitch()" />
+            <label id="pitchLabel" for="pitchChecked"> 根据路线自动计算 </label>
+          </div>
+          <div id="model_pitch_wrap">
+            <div id="model_pitch_new">
+              <input type="text" data-slider-min="0" data-slider-max="360" data-slider-step="0.01"
+                data-slider-value="10" title="倾角pitch">
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="jiaodu_2_angele">
+        <td class="nametd">roll值</td>
+        <td>
+          <div class="checkbox checkbox-primary checkbox-inline">
+            <input id="rollChecked" class="styled" type="checkbox" onclick="clickRoll()" />
+            <label id="rollLabel" for="rollChecked"> 根据路线自动计算 </label>
+          </div>
+          <div id="model_roll_wrap">
+            <div id="model_roll_new">
+              <input type="text" min="0" max="360" step="0.01" value="10" title="滚动角roll" />
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="./map.js"></script>
+
+  <!-- 漫游的面板的代码，注意顺序 -->
+  <script type="text/javascript" src="/js/fixedRoute_info.js"></script>
+  <script type="text/javascript">
+    "use script" //开发环境建议开启严格模式
+
+    function initUI(options) {
+      $("#btnPause").hide()
+
+      $("#btnStart").click(function () {
+        fixedRoute.start() // 启动漫游
+
+        $("#btnPause").show()
+        $("#btnPause").val("暂停")
+      })
+
+      $("#btnPause").click(function () {
+        if (fixedRoute.isStart) {
+          if (!fixedRoute.isPause) {
+            $("#btnPause").val("继续")
+            fixedRoute.pause()
+          } else {
+            $("#btnPause").val("暂停")
+            fixedRoute.proceed()
+          }
+        }
+      })
+
+      $("#btnStop").click(function () {
+        fixedRoute.stop()
+        $("#btnPause").hide()
+      })
+
+      init()
+
+      const data = fixedRoute.options.camera
+
+      $("#cameraType").attr("data-value", data.type)
+      $("#followedX").val(data.followedX)
+      $("#followedZ").val(data.followedZ)
+      $("#offsetZ").val(data.offsetZ || 0)
+      $("#offsetY").val(data.offsetY || 0)
+      $("#offsetX").val(data.offsetX || 0)
+
+      $("#cameraType").click()
+
+      updateM(false)
+    }
+
+    function updateM(isAuto) {
+      let pitch = Number($("#model_pitch").val())
+      let roll = Number($("#model_roll").val())
+      fixedRoute.model.setStyle({
+        noPitchRoll: true, // 不使用路线自动的角度
+        pitch,
+        roll
+      })
+    }
+
+    function init() {
+      //改变视角模式
+      $("#cameraType").select() //绑定样式
+
+      $("#cameraType").change(function () {
+        $("#tr_followedX").hide()
+        $("#tr_followedZ").hide()
+
+        let attrVal = $(this).attr("data-value")
+        switch (attrVal) {
+          default:
+            break
+          case "gs": //
+            $("#tr_followedX").show()
+            $("#tr_offsetZ").hide()
+            $("#tr_offsetY").hide()
+            $("#tr_offsetX").hide()
+            $("#model_pitch_wrap").hide()
+            $("#model_heading_wrap").hide()
+            $("#model_roll_wrap").hide()
+            break
+          case "dy": //锁定第一视角
+            $("#tr_followedX").show()
+            $("#tr_followedZ").show()
+
+            $("#tr_offsetZ").show()
+            $("#tr_offsetY").show()
+            $("#tr_offsetX").show()
+            $("#followedX").val(200)
+            $("#followedZ").val(50)
+            $("#offsetZ").val(0)
+            $("#offsetY").val(0)
+            $("#offsetX").val(0)
+
+            break
+          case "sd": //锁定上帝视角
+            {
+              $("#tr_followedZ").show()
+
+              let followedZ = Number($("#followedZ").val())
+              if (followedZ < 500) {
+                $("#followedZ").val(500)
+              }
+              $("#tr_offsetZ").hide()
+              $("#tr_offsetY").hide()
+              $("#tr_offsetX").hide()
+              $("#model_pitch_wrap").hide()
+              $("#model_heading_wrap").hide()
+              $("#model_roll_wrap").hide()
+            }
+            break
+        }
+        updateCameraSet()
+      })
+      $("#cameraType").change()
+
+      //第一视角
+      $("#followedX").change(function () {
+        updateCameraSet()
+      })
+      $("#followedZ").change(function () {
+        updateCameraSet()
+      })
+      $("#offsetY").change(function () {
+        updateCameraSet()
+      })
+      $("#offsetZ").change(function () {
+        updateCameraSet()
+      })
+      $("#offsetX").change(function () {
+        updateCameraSet()
+      })
+
+      //模型方向
+      // $(".jiaodu_2_angele").hide()
+      $('input:radio[name="jiaodu"]').change(function () {
+        let isAuto = $(this).val() === "1"
+        if (isAuto) {
+          // $(".jiaodu_2_angele").hide()
+        } else {
+          $(".jiaodu_2_angele").show()
+        }
+
+        updateM(isAuto)
+      })
+
+      $("#model_heading_new")
+        .slider({ min: 0, max: 360, step: 0.01, value: 0 })
+        .on("change", function () {
+          fixedRoute.model.heading = $("#model_heading_new").val()
+        })
+
+      $("#model_pitch_new")
+        .slider({ min: 0, max: 360, step: 0.01, value: 0 })
+        .on("change", function () {
+          fixedRoute.model.pitch = $("#model_pitch_new").val()
+        })
+
+      $("#model_roll_new")
+        .slider({ min: 0, max: 360, step: 0.01, value: 0 })
+        .on("change", function () {
+          fixedRoute.model.roll = $("#model_roll_new").val()
+        })
+    }
+
+    //改变视角模式
+    function updateCameraSet() {
+      let cameraType = $("#cameraType").attr("data-value")
+      let followedX = Number($("#followedX").val())
+      let followedZ = Number($("#followedZ").val())
+      let offsetZ = Number($("#offsetZ").val())
+      let offsetY = Number($("#offsetY").val())
+      let offsetX = Number($("#offsetX").val())
+      updateCameraSetting({
+        select: cameraType,
+        radius: cameraType == "gs" ? followedX : 0,
+        followedX: followedX,
+        followedZ: followedZ,
+        offsetZ: offsetZ,
+        offsetY: offsetY,
+        offsetX: offsetX
+      })
+    }
+
+    const clickHeading = () => {
+      if ($("#headingChecked").is(":checked")) {
+        $("#model_heading_wrap").show()
+        $("#headingLabel").text("")
+      } else {
+        $("#model_heading_wrap").hide()
+        $("#headingLabel").text("根据路线自动计算")
+      }
+    }
+    const clickPitch = () => {
+      if ($("#pitchChecked").is(":checked")) {
+        $("#model_pitch_wrap").show()
+        $("#pitchLabel").text("")
+      } else {
+        $("#model_pitch_wrap").hide()
+        $("#pitchLabel").text("根据路线自动计算")
+      }
+    }
+    const clickRoll = () => {
+      if ($("#rollChecked").is(":checked")) {
+        $("#model_roll_wrap").show()
+        $("#rollLabel").text("")
+      } else {
+        $("#model_roll_wrap").hide()
+        $("#rollLabel").text("根据路线自动计算")
+      }
+    }
+  </script>
+</body>
+
+</html>

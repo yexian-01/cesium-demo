@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0,minimum-scale=1.0,maximum-scale=1.0" />
+    <meta name="author" content="火星科技 http://mars3d.cn " />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="x5-fullscreen" content="true" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <!-- 标题及搜索关键字 -->
+    <meta name="keywords" content="火星科技,cesium,3D,GIS,marsgis,三维,地球,地图,开发,框架,系统,示例,资料,模型,离线,外包,合肥,安徽,中国" />
+    <meta
+      name="description"
+      content="火星科技 合肥火星 合肥火星科技 合肥火星科技有限公司 leaflet leaflet框架 leaflet开发 cesium cesium开发 cesium框架 三维 地球 模型  gis marsgis 地图离线 地图开发 地图框架 地图外包 框架 开发 外包  地图离线 二维地图 三维地图 全景漫游 地理信息系统 云GIS 三维GIS GIS平台 WebGIS"
+    />
+
+    <link rel="shortcut icon" type="image/x-icon" href="/img/favicon/favicon.ico" />
+    <title>生成网格 | Mars3D | 三维地图 | 火星科技 | 合肥火星科技有限公司</title>
+
+    <!--第三方lib-->
+    <script
+      type="text/javascript"
+      src="/lib/include-lib.js"
+      libpath="/lib/"
+      include="jquery,layer,toastr,font-awesome,bootstrap,layer,haoutil,mars3d"
+    ></script>
+
+    <link href="/css/style.css" rel="stylesheet" />
+
+    <style>
+      .infoview input {
+        vertical-align: middle;
+        padding-top: 2px;
+        padding-bottom: 2px;
+      }
+    </style>
+  </head>
+
+  <body class="dark">
+
+
+    <div id="mars3dContainer" class="mars3d-container"></div>
+
+    <!-- 面板 -->
+    <div class="infoview">
+      <div>步长: <input id="stepVlaue" type="number" style="width: 60px" min="0" value="5" />公里 &nbsp;&nbsp;</div>
+
+      <div>
+        类型:
+        <input type="radio" name="grid" value="point" />点 <input type="radio" name="grid" value="triangle" />三角网
+        <input type="radio" name="grid" value="square" />方格网 <input type="radio" name="grid" value="hex" />蜂窝网
+      </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="./map.js"></script>
+
+    <script type="text/javascript">
+      "use script" //开发环境建议开启严格模式
+
+      let gridType // 类型
+      function initUI(options) {
+        gridType = $('input:radio[name="grid"]').val() // 类型
+        const step = $("#stepVlaue").val()
+
+        //按按钮切换
+        $('input:radio[name="grid"]').change(function () {
+          gridType = $(this).val()
+          const cellSide = $("#stepVlaue").val()
+          creatGrid(step)
+        })
+
+        //步长改变
+        $("#stepVlaue").change(function () {
+          const cellSide = $(this).val()
+          creatGrid(step)
+        })
+      }
+
+      function creatGrid(step) {
+        switch (gridType) {
+          case "point":
+            pointGrid(step)
+            break
+
+          case "triangle":
+            triangleGrid(step)
+            break
+
+          case "square":
+            squareGrid(step)
+            break
+
+          case "hex":
+            hexGrid(step)
+            break
+
+          default:
+            break
+        }
+      }
+    </script>
+  </body>
+</html>

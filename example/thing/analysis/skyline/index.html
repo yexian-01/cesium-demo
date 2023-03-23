@@ -1,0 +1,80 @@
+<!-- 2017-12-7 14:56:03 | 修改 木遥（微信:  http://marsgis.cn/weixin.html ） -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0,minimum-scale=1.0,maximum-scale=1.0" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="x5-fullscreen" content="true" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <link rel="shortcut icon" type="image/x-icon" href="/img/favicon/favicon.ico" />
+    <title>天际线描边</title>
+
+    <script
+      type="text/javascript"
+      src="/lib/include-lib.js"
+      libpath="/lib/"
+      include="jquery,layer,toastr,font-awesome,bootstrap,bootstrap-checkbox,jquery.range,layer,haoutil,mars3d"
+    ></script>
+
+    <link href="/css/style.css" rel="stylesheet" />
+    <style>
+      .input-slider {
+        width: 60px !important;
+      }
+    </style>
+  </head>
+
+  <body class="dark">
+    <div id="mars3dContainer" class="mars3d-container"></div>
+
+    <!-- 面板 -->
+    <div class="infoview">
+      <div class="checkbox checkbox-primary checkbox-inline">
+        <input id="chkSkyline" class="styled" type="checkbox" checked />
+        <label for="chkSkyline"> 开启天际线 </label>
+      </div>
+      <div style="margin-top: 5px">
+        线宽：
+        <input
+          id="lineWidth"
+          class="input-slider"
+          type="number"
+          value="3"
+          min="1"
+          step="1"
+          max="10"
+          class="form-control"
+          style="width: 100px"
+        />（像素）
+
+        <input id="randomCor" class="btn btn-primary" type="button" value="换色" />
+      </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="./map.js"></script>
+    <script type="text/javascript">
+      "use script" //开发环境建议开启严格模式
+
+      function initUI(options) {
+        $("#chkSkyline").change(function () {
+          let value = $(this).is(":checked")
+          isVChecked(value)
+        })
+
+        $("#lineWidth").change(function () {
+          let val = Number($(this).val())
+          lineWidth(val)
+        })
+
+        $("#randomCor").click(function () {
+          changeColor() // 随机颜色
+        })
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,297 @@
+<!-- 2017-12-7 14:56:03 | 修改 木遥（微信:  http://marsgis.cn/weixin.html ） -->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport"
+    content="width=device-width,initial-scale=1,user-scalable=0,minimum-scale=1.0,maximum-scale=1.0" />
+  <meta name="apple-touch-fullscreen" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="x5-fullscreen" content="true" />
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+  <!-- 标题及搜索关键字 -->
+  <meta name="keywords" content="火星科技,cesium,3D,GIS,marsgis,三维,地球,地图,开发,框架,系统,示例,资料,模型,离线,外包,合肥,安徽,中国" />
+  <meta name="description"
+    content="火星科技 合肥火星 合肥火星科技 合肥火星科技有限公司 leaflet leaflet框架 leaflet开发 cesium cesium开发 cesium框架 三维 地球 模型  gis marsgis 地图离线 地图开发 地图框架 地图外包 框架 开发 外包  地图离线 二维地图 三维地图 全景漫游 地理信息系统 云GIS 三维GIS GIS平台 WebGIS" />
+
+  <link rel="shortcut icon" type="image/x-icon" href="/img/favicon/favicon.ico" />
+  <title>路线漫游及控制 卫星示例 | Mars3D | 三维地图 | 火星科技 | 合肥火星科技有限公司</title>
+
+  <script type="text/javascript" src="/lib/include-lib.js" libpath="/lib/"
+    include="jquery,layer,toastr,font-awesome,bootstrap,bootstrap-checkbox,bootstrap-slider,layer,haoutil,mars3d"></script>
+
+  <link href="/css/style.css" rel="stylesheet" />
+  <style>
+    .mp_table {
+      width: 100%;
+      border: #cde1de 1px solid;
+      font-size: 12px;
+      border-collapse: collapse;
+      border-spacing: 0;
+    }
+
+    .mp_table tr td {
+      padding: 5px 5px;
+      text-align: left;
+      border: #cde1de 1px solid;
+    }
+
+    .mp_table tr td:first-child {
+      border-left: none;
+    }
+
+    .nametd {
+      width: 40%;
+    }
+
+    .mp_input {
+      height: 28px;
+      line-height: 22px;
+      padding: 3px 5px;
+      box-sizing: border-box;
+      font-size: 12px;
+      border: 1px solid #e6e6e6;
+      background-color: #fff;
+      border-radius: 3px;
+      display: block;
+      width: 100%;
+      outline: 0;
+      box-sizing: border-box;
+    }
+
+    .mp_input:hover {
+      border-color: #c9c9c9 !important;
+    }
+
+    .mp_input:focus {
+      border-color: #3374e0 !important;
+    }
+
+    /*select*/
+    .mp_select {
+      height: 28px;
+      line-height: 22px;
+      padding: 0 5px;
+      box-sizing: border-box;
+      font-size: 12px;
+      border: 1px solid #e6e6e6;
+      background-color: #fff;
+      border-radius: 3px;
+      outline: 0;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    .mp_select:after {
+      content: "";
+      width: 0;
+      height: 0;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: absolute;
+      border-width: 6px;
+      display: inline-block;
+      top: 10px;
+      right: 5px;
+      border-style: solid dashed dashed;
+      border-color: #c2c2c2 transparent transparent;
+    }
+
+    .mp_selected:after {
+      top: 4px;
+      border-style: dashed dashed solid;
+      border-color: transparent transparent #c2c2c2;
+    }
+
+    .mp_select .mp_select_text {
+      padding: 0 20px 0 0;
+      height: 28px;
+      line-height: 26px;
+      overflow: hidden;
+    }
+
+    .mp_select_ul {
+      background: #fff;
+      border: #d6d6d6 1px solid;
+      border-radius: 3px;
+      padding: 5px 0;
+      box-shadow: 1px 2px 1px rgba(0, 0, 0, 0.15);
+      position: absolute;
+      left: 0;
+      z-index: 1000;
+      color: #333;
+      text-align: center;
+      width: 100%;
+      display: none;
+    }
+
+    .mp_select_ul li {
+      margin: 0 5px;
+      border-radius: 3px;
+      text-align: left;
+      height: 28px;
+      line-height: 28px;
+      text-indent: 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mp_select_ul li:hover {
+      background: #ecf1f8;
+    }
+
+    .mp_select_ul .selecton,
+    .mp_select_ul .selecton:hover {
+      background: #3374e0 !important;
+      color: #fff !important;
+    }
+
+    /*dark*/
+    .dark .mp_select {
+      background-color: rgba(63, 72, 84, 0.6);
+    }
+
+    .dark .mp_select_ul {
+      color: #ffffff;
+      background-color: rgba(63, 72, 84, 0.8);
+    }
+
+    .dark .mp_select_ul li:hover {
+      background-color: rgba(63, 72, 84, 1);
+    }
+
+    .dark .mp_select_ul .selecton,
+    .mp_select_ul .selecton:hover {
+      background: rgba(63, 72, 84, 1) !important;
+      color: #fff !important;
+    }
+
+    .mp_head2 {
+      width: 100%;
+      height: 45px;
+      line-height: 45px;
+      text-align: center;
+    }
+
+    .dark .progress {
+      margin: 0;
+      background-color: #0b2931;
+    }
+
+    .clearGroundShadow {
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body class="dark">
+  <div id="mars3dContainer" class="mars3d-container"></div>
+
+  <!-- 控制 面板 -->
+  <div class="infoview">
+    <table class="mp_table">
+      <tr>
+        <td class="nametd">模型角度</td>
+        <td>
+          <div class="radio radio-info radio-inline">
+            <input type="radio" id="jiaodu_1" value="1" name="jiaodu" checked />
+            <label for="jiaodu_1">自动</label>
+          </div>
+          <div class="radio radio-info radio-inline">
+            <input type="radio" id="jiaodu_2" value="2" name="jiaodu" />
+            <label for="jiaodu_2">手动</label>
+          </div>
+        </td>
+      </tr>
+      <tr class="jiaodu_2_angele">
+        <td class="nametd">heading值</td>
+        <td>
+          根据路线自动计算
+          <!-- <input id="model_heading" type="range" min="0" max="360" step="0.01" value="10" title="方向"> -->
+        </td>
+      </tr>
+      <tr class="jiaodu_2_angele">
+        <td class="nametd">pitch值（前后）</td>
+        <td>
+          <input id="model_pitch" title="倾角pitch" />
+        </td>
+      </tr>
+      <tr class="jiaodu_2_angele">
+        <td class="nametd">roll值（左右）</td>
+        <td>
+          <input id="model_roll" title="滚动角roll" />
+        </td>
+      </tr>
+    </table>
+
+    <div class="f-tac clearGroundShadow">
+      <input type="button" class="btn btn-primary" id="btnClear" value="清除地面投影" onclick="clearGroundLayer()" />
+    </div>
+
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="./map.js"></script>
+
+  <!-- 漫游的面板的代码，注意顺序 -->
+  <script type="text/javascript" src="/js/fixedRoute_info.js"></script>
+  <script type="text/javascript">
+    "use script" //开发环境建议开启严格模式
+
+    function initUI(options) {
+      init()
+      $(".jiaodu_2_angele").hide()
+      updateM(false)
+    }
+
+    function init() {
+      //模型方向
+      // $(".jiaodu_2_angele").hide();
+      $('input:radio[name="jiaodu"]').change(function () {
+        let isAuto = $(this).val() === "1"
+        if (isAuto) {
+          $(".jiaodu_2_angele").hide()
+        } else {
+          $(".jiaodu_2_angele").show()
+        }
+
+        updateM(isAuto)
+      })
+      //滑动条
+      $("#model_pitch")
+        .slider({ min: -90, max: 90, step: 0.01, value: 0 })
+        .on("change", (e) => {
+          updateM()
+        })
+      $("#model_roll")
+        .slider({ min: -90, max: 90, step: 0.01, value: 10 })
+        .on("change", (e) => {
+          updateM()
+        })
+
+      updateM(false)
+    }
+
+    function updateM(isAuto) {
+      let pitch = Number($("#model_pitch").val())
+      let roll = Number($("#model_roll").val())
+
+      if (isAuto) {
+        setMoelStyle({
+          noPitchRoll: true, // 不使用路线自动的角度
+          pitch,
+          roll
+        })
+      } else {
+        clearMoelPitchRoll()
+      }
+    }
+  </script>
+</body>
+
+</html>

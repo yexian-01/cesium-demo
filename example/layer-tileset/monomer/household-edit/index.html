@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport"
+    content="width=device-width,initial-scale=1,user-scalable=0,minimum-scale=1.0,maximum-scale=1.0" />
+  <meta name="apple-touch-fullscreen" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="x5-fullscreen" content="true" />
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+
+  <!-- 标题及搜索关键字 -->
+  <meta name="keywords" content="火星科技,cesium,3D,GIS,marsgis,三维,地球,地图,开发,框架,系统,示例,资料,模型,离线,外包,合肥,安徽,中国" />
+  <meta name="description"
+    content="火星科技 合肥火星 合肥火星科技 合肥火星科技有限公司 leaflet leaflet框架 leaflet开发 cesium cesium开发 cesium框架 三维 地球 模型  gis marsgis 地图离线 地图开发 地图框架 地图外包 框架 开发 外包  地图离线 二维地图 三维地图 全景漫游 地理信息系统 云GIS 三维GIS GIS平台 WebGIS" />
+
+  <link rel="shortcut icon" type="image/x-icon" href="/img/favicon/favicon.ico" />
+  <title>分层分户矢量单体化编辑|Mars3D|三维地图| 火星科技|合肥火星科技|合肥火星科技有限公司</title>
+
+  <script type="text/javascript" src="/lib/include-lib.js" libpath="/lib/"
+    include="jquery,layer,toastr,font-awesome,bootstrap,bootstrap-table,bootstrap-checkbox,bootstrap-slider,layer,haoutil,mars3d,mars3d-widget"></script>
+
+  <link href="/css/style.css" rel="stylesheet" />
+
+  <style>
+    #addPannel {
+      display: none;
+      margin-top: 300px;
+    }
+
+    .inputHeight {
+      width: 150px;
+    }
+
+    .borderBtn {
+      float: right;
+    }
+
+    .heightLine {
+      float: left;
+      margin-bottom: 5px;
+    }
+
+    .infoviewTable {
+      height: 270px;
+    }
+
+    .flatTable {
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .flatTable tr td,
+    th {
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      text-align: center;
+    }
+
+    .optionsBtn {
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body class="dark">
+  <div id="mars3dContainer" class="mars3d-container"></div>
+  <div class="infoview" style="overflow: auto; max-height: 350px">
+    <div>
+      <input id="addHouseType" type="button" class="btn btn-primary" value="新增" />
+      <input id="exportHouseType" type="button" class="btn btn-primary" value="导出" />
+      <input id="loadHouseType" type="button" class="btn btn-primary" value="导入" />
+      <input id="clearHouseDraw" type="button" class="btn btn-primary" value="清除" />
+
+      <input id="input_import_file" type="file" accept=".json,.geojson,.kml,.kmz" style="display: none" />
+    </div>
+
+    <table class="mars-table flatTable">
+      <thead>
+        <th>户型</th>
+        <th>总层数</th>
+        <th>操作</th>
+      </thead>
+      <tbody id="tbPoly"></tbody>
+    </table>
+  </div>
+
+  <div class="infoview" id="addPannel">
+    <div>
+      边界： <span id="hasBorder">无</span>
+      <button class="borderBtn" id="quitDrawBtn">清除</button>
+      <button class="borderBtn" id="drawArea">绘制</button>
+    </div>
+    <div class="heightLine">
+      最低高：<input id="minHeight" type="text" value="" required class="form-control inputHeight" placeholder="请输入" />
+      <button id="getMinHeight">拾取</button>
+    </div>
+    <div>
+      最高高：<input id="maxHeight" type="text" value="" required class="form-control inputHeight" placeholder="请输入" />
+      <button id="getMaxHeight">拾取</button>
+    </div>
+    <div>
+      楼层数：<input id="floorCount" type="text" value="" required class="form-control inputHeight" placeholder="请输入" />
+    </div>
+    <div class="optionsBtn">
+      <button id="produceData">生成</button>
+      <button id="exit">退出</button>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="./map.js"></script>
+  <script src="/js/graphic_layer_state.js"></script>
+  <script type="text/javascript">
+    "use script" //开发环境建议开启严格模式
+
+    let drawGraphicId // 画出范围的graphic的id
+    let currentHouseType // 当前房屋的位置
+    let hasDraw // 是否已经画出区域
+    let dthPara = {
+      maxHeight: 0,// 最高高
+      minHeight: 0,// 最低高
+      floorCount: 1,// 楼层数
+      positions: []// 画出范围的graphic的位置数组
+    }
+    let isEditing // 处于编辑状态
+    let tableData = [] // 表格数据
+
+    function initUI(options) {
+      // 绘制区域
+      $("#drawArea").click(function () {
+        clearPannelData()
+
+        addData().then((data) => {
+          drawGraphicId = data.id
+          // pointsArr = []
+          dthPara.positions = []
+          data.points.forEach((item) => {
+            dthPara.positions.push([item.lng, item.lat])
+          })
+          currentHouseType = dthPara.positions
+          hasDraw = true
+          $("#drawArea").attr("disabled", true)
+          $("#hasBorder").html("已绘制")
+        })
+      })
+
+      // 拾取顶部高度
+      $("#getMaxHeight").click(function (data) {
+        getBuildingHeight().then((data) => {
+          maxHeight = data.height
+          $("#maxHeight").val(maxHeight)
+        })
+      })
+
+      // 拾取底部高度
+      $("#getMinHeight").click(function (data) {
+        getBuildingHeight().then((data) => {
+          dthPara.minHeight = data.height
+          $("#minHeight").val(dthPara.minHeight)
+        })
+      })
+
+      const clearPannelData = () => {
+        maxHeight = 0
+        $("#maxHeight").val(0)
+        dthPara.minHeight = 0
+        $("#minHeight").val(0)
+        dthPara.floorCount = 1
+        $("#floorCount").val(1)
+        isEditing = false
+      }
+
+      // 根据楼高生成每层
+      $("#produceData").click(function () {
+        dthPara.floorCount = $("#floorCount").val()
+        dthPara.maxHeight = $("#maxHeight").val()
+        dthPara.minHeight = $("#minHeight").val()
+
+        if (isEditing) {
+          return editProduceData()
+        }
+
+        if (!hasDraw && dthPara.positions.length === 0) {
+          return $message("请先绘制区域")
+        }
+        produce()
+      })
+
+      const produce = () => {
+        console.log("drawGraphicId应该是绘制的值", drawGraphicId)
+
+        const produceObj = produceData(drawGraphicId, dthPara)
+
+        drawGraphicId = ""
+        console.log("生成的数据produceObj", produceObj)
+
+        if (produceObj) {
+          tableData.push({
+            houseType: produceObj.houseTypeCount + "号户型",
+            floorHeight: produceObj.floorHeight,
+            generateGraphicIdArr: produceObj.generateGraphicIdArr,
+            ...dthPara
+          })
+
+          hasDraw = false
+          isEditing = true
+          $("#clearHouseDraw").attr("disabled", false)
+          $("#quitDrawBtn").attr("disabled", true)
+        }
+        showHouseTypeTable(tableData)
+        console.log("表格数据", tableData)
+      }
+
+      $("#addHouseType").click(function () {
+        $("#addPannel").show()
+        $("#addHouseType").attr("disabled", true)
+        $("#drawArea").attr("disabled", false)
+      })
+
+      $("#clearHouseDraw").click(function () {
+        tableData = []
+
+        let tbody = document.getElementById("tbPoly")
+        // 清空表格
+        var child = tbody.lastElementChild
+        while (child) {
+          tbody.removeChild(child)
+          child = tbody.lastElementChild
+        }
+        clearAllData()
+        isEditing = false
+        showAddDataPannel = false
+
+        $("#addPannel").hide()
+        closePanle()
+        $("#addHouseType").attr("disabled", false)
+        $("#clearHouseDraw").attr("disabled", true)
+        $("#hasBorder").html("无")
+      })
+
+      // 导出
+      $("#exportHouseType").click(function () {
+        console.log("导出")
+
+        if (map.graphicLayer.length === 0) {
+          window.layer.msg("当前没有标注任何数据，无需保存！")
+          return
+        }
+
+        saveGeoJSON()
+      })
+
+      // 导入
+      $("#loadHouseType").click(function () {
+        $("#input_import_file").click()
+      })
+      $("#input_import_file").change(function (e) {
+        let file = this.files[0]
+        if (file) {
+          $("#addPannel").hide()
+          clearAllData()
+          $("#clearHouseDraw").attr("disabled", false)
+          openGeoJSON(file, openGeoJSONEnd)
+        }
+      })
+
+      $("#quitDrawBtn").click(function () {
+        quitDrawBtn()
+        $("#drawArea").attr("disabled", false)
+        $("#hasBorder").html("无")
+      })
+
+      $("#exit").click(function () {
+        closePanle()
+        $("#addHouseType").attr("disabled", false)
+        $("#quitDrawBtn").attr("disabled", false)
+
+        $("#hasBorder").html("无")
+      })
+      function showHouseTypeTable(data) {
+        let tbody = document.getElementById("tbPoly")
+        // 清空表格
+        var child = tbody.lastElementChild
+        while (child) {
+          tbody.removeChild(child)
+          child = tbody.lastElementChild
+        }
+
+        // 向表格添加最新数据
+        data.forEach((item) => {
+          addTableItem(item)
+        })
+      }
+
+      $("#clearHouseDraw").attr("disabled", true)
+    }
+
+    // 区域表格添加一行记录
+    function addTableItem(item) {
+      // 增加tr和td表格
+      let tbody = document.getElementById("tbPoly")
+      let tr = document.createElement("tr")
+      tr.innerHTML = `
+          <tr>
+            <td>${item.houseType}</td>
+            <td>${item.floorCount}</td>
+            <td>
+              <a class="flyTo" href="javascript:void(0)" title="飞行定位到区域"><i class="fa fa-send-o"></i></a>&nbsp;&nbsp;
+              <a class="edit" href="javascript:void(0)" title="编辑"><i class="fa fa-edit"></i></a>&nbsp;&nbsp;
+              <a class="remove" href="javascript:void(0)" title="删除区域"><i class="fa fa-trash"></i></a>
+            </td>
+          </tr>`
+
+      tbody.appendChild(tr)
+
+      //绑定单击事件 定位
+      tr.querySelector(".flyTo").addEventListener("click", function (e) {
+        map.flyToPositions(item.positions)
+      })
+
+      // 删除房型
+      tr.querySelector(".remove").addEventListener("click", function (e) {
+        deleteTableItem(item)
+        tbody.removeChild(tr)
+        closePanle()
+        $("#addHouseType").attr("disabled", false)
+        $("#hasBorder").html("无")
+      })
+
+      // 编辑
+      tr.querySelector(".edit").addEventListener("click", function (e) {
+        console.log("item----", item)
+        isEditing = true
+        // 打开面板
+        $("#addPannel").show()
+        dthPara.floorCount = item.floorCount
+        dthPara.minHeight = item.minHeight
+        dthPara.maxHeight = item.maxHeight
+        $("#maxHeight").val(dthPara.maxHeight)
+        $("#minHeight").val(dthPara.minHeight)
+        $("#floorCount").val(dthPara.floorCount)
+        dthPara.positions = item.positions
+        currentHouseType = dthPara.positions
+      })
+    }
+
+    // 删除房型
+    function deleteTableItem(data) {
+
+      tableData = tableData.filter((item) => {
+        if (item.positions[0][0] !== data.positions[0][0]) {
+          return true
+        } else {
+          // 删除图层数据
+          item.generateGraphicIdArr.forEach((id) => {
+            quitDraw(id)
+          })
+          return false
+        }
+      })
+    }
+
+    // 取消绘制
+    const quitDrawBtn = () => {
+      console.log("aaa", drawGraphicId)
+      if (drawGraphicId) {
+        quitDraw(drawGraphicId)
+        hasDraw = false
+        pointsArr = []
+      }
+    }
+
+    function openGeoJSONEnd(graphics) {
+
+      // 查看共所有号房型
+      const houseTypeCounts = graphics
+        .map((graphic) => {
+          return graphic.attr.houseTypeCount
+        })
+        .reduce((pre, cur) => {
+          if (pre.includes(cur)) {
+            return pre
+          } else {
+            return pre.concat(cur)
+          }
+        }, [])
+
+      console.log("houseTypeCounts", houseTypeCounts);
+      console.log("graphics", graphics);
+
+      tableData = []
+      let tbody = document.getElementById("tbPoly")
+      // 清空表格
+      var child = tbody.lastElementChild;
+      while (child) {
+        tbody.removeChild(child);
+          child = tbody.lastElementChild;
+      }
+
+
+      houseTypeCounts.forEach((houseType) => {
+        let dthPara = {
+          floorCount: 0,
+          generateGraphicIdArr: []
+        }
+        graphics
+          .filter((graphic) => graphic.attr.houseTypeCount === houseType)
+          .map((graphic) => {
+            dthPara = {
+              ...dthPara,
+              ...graphic.attr,
+              floorCount: graphic.attr.allFloor
+            }
+
+            dthPara.generateGraphicIdArr.push(graphic.id)
+            return graphic
+          })
+        tableData.push(dthPara)
+      })
+
+      tableData.forEach( item => {
+        addTableItem(item)
+      })
+
+    }
+
+
+    const pushLoadDataToTable = (data) => {
+      console.log("获取到的data--------", data)
+      const pushData = data.properties
+
+      return {
+        houseType: pushData.houseType,
+        floorCount: pushData.allFloor,
+        floorHeight: pushData.floorHeight,
+        minHeight: pushData.minHeight,
+        maxHeight: pushData.maxHeight,
+        position: pushData.positionArr,
+        generateGraphicIdArr: []
+      }
+    }
+
+    // 退出
+    const closePanle = () => {
+      clearPannelData()
+      quitDraw(drawGraphicId)
+      $("#addPannel").hide()
+      hasDraw = false
+      isEditing = false
+      pointsArr = []
+      drawGraphicId = ""
+    }
+
+    const clearPannelData = () => {
+      console.log("sss")
+      dthPara.maxHeight = 0
+      $("#maxHeight").val(null)
+      dthPara.minHeight = 0
+      $("#minHeight").val(null)
+      dthPara.floorCount = 1
+      $("#floorCount").val(null)
+      isEditing = false
+    }
+
+    function $message(msg) {
+      return haoutil.msg(msg)
+    }
+
+    // 编辑中的生成
+    const editProduceData = () => {
+      console.log("编辑中的生成")
+      tableData.forEach((item) => {
+        if (item.positions === currentHouseType) {
+          console.log("编辑之后", dthPara.floorCount)
+          item.floorCount = dthPara.floorCount
+          const resultData = produceData(drawGraphicId, dthPara, item.generateGraphicIdArr)
+          if (resultData) {
+            item.generateGraphicIdArr = resultData.generateGraphicIdArr
+            item.floorHeight = resultData.floorHeight
+
+            item.maxHeight = dthPara.maxHeight
+            item.minHeight = dthPara.minHeight
+            item.floorCount = dthPara.floorCount
+          }
+        }
+      })
+
+      let tbody = document.getElementById("tbPoly")
+      // 清空表格
+      var child = tbody.lastElementChild
+      while (child) {
+        tbody.removeChild(child)
+        child = tbody.lastElementChild
+      }
+
+      tableData.forEach((item) => {
+        addTableItem(item)
+      })
+    }
+  </script>
+</body>
+
+</html>
